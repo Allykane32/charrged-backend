@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CHARRGED</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: #0a0a0a;
+    font-family: Georgia, serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .phone {
+    width: 375px;
+    height: 780px;
+    background: #111;
+    border-radius: 48px;
+    border: 8px solid #222;
+    box-shadow: 0 0 0 1px #333, 0 40px 80px rgba(0,0,0,0.8), inset 0 0 0 1px #2a2a2a;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* On actual phones, fill the screen */
+  @media (max-width: 400px) {
+    body { align-items: flex-start; background: #0d0d0d; }
+    .phone {
+      width: 100vw; height: 100vh;
+      border-radius: 0; border: none;
+      box-shadow: none;
+    }
+  }
+
+  .statusbar {
+    height: 44px;
+    background: #0d0d0d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .statusbar .time { color: #888; font-size: 12px; font-family: monospace; }
+  .statusbar .notch {
+    width: 120px; height: 28px;
+    background: #0d0d0d;
+    border-radius: 20px;
+    border: 1px solid #222;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+  .statusbar .icons { color: #888; font-size: 11px; }
+
+  .screen {
+    flex: 1;
+    overflow-y: auto;
+    background: #0d0d0d;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  .screen-center {
+    flex: 1;
+    background: #0d0d0d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 32px;
+    text-align: center;
+    overflow-y: auto;
+  }
+
+  /* Typography */
+  .label { color: #555; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+  .orange { color: #FF6B1A; }
+  .white { color: #fff; }
+  .grey { color: #666; }
+  .mid { color: #aaa; }
+
+  /* Buttons */
+  .btn-primary {
+    width: 100%; background: #FF6B1A; color: #fff;
+    border: none; border-radius: 14px; padding: 16px;
+    font-size: 14px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; font-family: Georgia, serif;
+  }
+  .btn-disabled {
+    width: 100%; background: #1a1a1a; color: #333;
+    border: 1px solid #222; border-radius: 14px; padding: 16px;
+    font-size: 13px; text-align: center; font-family: Georgia, serif;
+  }
+  .btn-back {
+    background: none; border: none; color: #FF6B1A;
+    font-size: 14px; cursor: pointer; padding: 0;
+    font-family: Georgia, serif;
+  }
+  .btn-ghost {
+    background: none; border: 1px solid #333; color: #666;
+    border-radius: 12px; padding: 12px 24px;
+    font-size: 12px; cursor: pointer; font-family: Georgia, serif;
+    margin-top: 28px;
+  }
+
+  /* Cards */
+  .card { background: #161616; border-radius: 16px; padding: 16px; border: 1px solid #222; }
+  .card-orange { background: #161616; border-radius: 16px; padding: 20px; border: 1px solid rgba(255,107,26,0.2); }
+  .card-hero {
+    margin: 20px 24px;
+    background: linear-gradient(135deg, #1a0f00 0%, #2a1500 100%);
+    border-radius: 20px; padding: 24px;
+    border: 1px solid rgba(255,107,26,0.13);
+    position: relative; overflow: hidden;
+  }
+  .card-hero::before {
+    content: "⚡";
+    position: absolute; right: -10px; top: -10px;
+    font-size: 80px; opacity: 0.06;
+  }
+
+  /* Slot grid */
+  .slot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
+  .slot {
+    background: #161616; border-radius: 12px; padding: 14px 16px;
+    border: 1px solid #222; cursor: pointer;
+  }
+  .slot.selected { background: #FF6B1A; border-color: #FF6B1A; }
+  .slot.soldout { opacity: 0.4; cursor: not-allowed; background: #0d0d0d; border-color: #1a1a1a; }
+  .slot-time { color: #fff; font-size: 15px; font-weight: 700; }
+  .slot.selected .slot-time { color: #fff; }
+  .slot-avail { font-size: 11px; margin-top: 4px; color: #555; }
+  .slot.selected .slot-avail { color: #ffcc99; }
+  .slot-low .slot-avail { color: #FFA500; }
+
+  /* Choice rows */
+  .choice-row {
+    background: #161616; border-radius: 12px; padding: 14px 16px;
+    margin-bottom: 8px; border: 1px solid #222;
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  }
+  .choice-row.active { background: #1a0f00; border-color: #FF6B1A; }
+  .choice-row .choice-label { color: #aaa; font-size: 14px; }
+  .choice-row.active .choice-label { color: #FF6B1A; }
+  .choice-row .choice-icon { color: #333; font-size: 18px; }
+  .choice-row.active .choice-icon { color: #FF6B1A; }
+
+  /* Session rows */
+  .session-row {
+    background: #161616; border-radius: 16px; padding: 16px;
+    margin-bottom: 10px; border: 1px solid #222;
+    cursor: pointer; display: flex; align-items: center; gap: 16px;
+  }
+  .session-date-box {
+    background: #1a1a1a; border-radius: 12px; padding: 10px 14px;
+    text-align: center; border: 1px solid #2a2a2a; min-width: 48px;
+  }
+
+  /* Totals */
+  .total-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .divider { border-top: 1px solid #222; margin-top: 10px; padding-top: 10px; }
+
+  /* Live dot */
+  .live-dot { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .dot { background: #FF6B1A; width: 8px; height: 8px; border-radius: 50%; }
+
+  /* How it works */
+  .how-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .how-icon { font-size: 16px; }
+  .how-text { color: #666; font-size: 12px; line-height: 1.5; }
+
+  /* Confirmation */
+  .confirm-big-icon { font-size: 64px; margin-bottom: 16px; }
+  .confirm-summary {
+    background: #161616; border-radius: 20px; padding: 24px;
+    border: 1px solid rgba(255,107,26,0.2); width: 100%; margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <div class="notch"></div>
+    <span class="icons">●●●</span>
+  </div>
+  <div id="app" style="flex:1; overflow:hidden; position:relative; display:flex; flex-direction:column;"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const sessions = [
+  { id: 1, day: "THU", date: "19", type: "Evening Drop", time: "6:00 PM — 9:00 PM", location: "Victoria Square", slots: [
+    { time: "6:00", available: 0, total: 10 },
+    { time: "6:15", available: 3, total: 10 },
+    { time: "6:30", available: 10, total: 10 },
+    { time: "6:45", available: 10, total: 10 },
+    { time: "7:00", available: 7, total: 10 },
+    { time: "7:15", available: 10, total: 10 },
+    { time: "7:30", available: 10, total: 10 },
+    { time: "7:45", available: 10, total: 10 },
+  ]},
+  { id: 2, day: "FRI", date: "20", type: "Afternoon Drop", time: "12:00 PM — 2:00 PM", location: "Queen's University", slots: [
+    { time: "12:00", available: 10, total: 10 },
+    { time: "12:15", available: 10, total: 10 },
+    { time: "12:30", available: 10, total: 10 },
+    { time: "12:45", available: 10, total: 10 },
+    { time: "1:00",  available: 10, total: 10 },
+    { time: "1:15",  available: 10, total: 10 },
+    { time: "1:30",  available: 10, total: 10 },
+    { time: "1:45",  available: 10, total: 10 },
+  ]},
+];
+
+const SIDES = ["Coleslaw", "Gourmet Beans", "Pickles"];
+const EXTRAS = [
+  { name: "Premium Crisps", price: 1.50 },
+  { name: "Coke",           price: 2.00 },
+  { name: "Diet Coke",      price: 2.00 },
+  { name: "Fanta",          price: 2.00 },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let state = {
+  screen: "home",       // home | session | order | confirmation
+  selectedSession: null,
+  selectedSlot: null,
+  selectedSides: [],
+  selectedExtras: [],
+};
+
+function getTotal() {
+  return 12 + state.selectedExtras.reduce((s, name) => {
+    const e = EXTRAS.find(x => x.name === name);
+    return s + (e ? e.price : 0);
+  }, 0);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+
+  if (state.screen === "home")         app.appendChild(renderHome());
+  else if (state.screen === "session") app.appendChild(renderSession());
+  else if (state.screen === "order")   app.appendChild(renderOrder());
+  else if (state.screen === "confirmation") app.appendChild(renderConfirmation());
+}
+
+// ── HOME ──────────────────────────────────────────────────────────────────
+function renderHome() {
+  const div = document.createElement("div");
+  div.className = "screen";
+  div.innerHTML = `
+    <!-- Header -->
+    <div style="padding:20px 24px 0; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="color:#FF6B1A; font-size:28px; font-weight:900; letter-spacing:-1px;">CHARRGED</div>
+        <div class="label" style="margin-top:2px;">Belfast</div>
+      </div>
+      <div style="width:36px; height:36px; border-radius:50%; background:#1a1a1a; border:1px solid #333; display:flex; align-items:center; justify-content:center; font-size:16px;">⚡</div>
+    </div>
+
+    <!-- Hero card -->
+    <div class="card-hero">
+      <div class="label orange" style="margin-bottom:8px;">Next Drop</div>
+      <div class="white" style="font-size:22px; font-weight:700; margin-bottom:4px;">Thursday Evening</div>
+      <div class="grey" style="font-size:13px; margin-bottom:4px;">Victoria Square · 6:00 PM</div>
+      <div class="live-dot"><div class="dot"></div><span style="color:#FF6B1A; font-size:12px; letter-spacing:1px;">BOOKING OPEN</span></div>
+      <button class="btn-primary" id="heroBook" style="margin-top:16px;">BOOK YOUR SLOT →</button>
+    </div>
+
+    <!-- Upcoming -->
+    <div style="padding:0 24px;">
+      <div class="label" style="margin-bottom:12px;">All Upcoming Drops</div>
+      ${sessions.map(s => `
+        <div class="session-row" data-session="${s.id}">
+          <div class="session-date-box">
+            <div style="color:#FF6B1A; font-size:10px; letter-spacing:2px;">${s.day}</div>
+            <div class="white" style="font-size:22px; font-weight:700; line-height:1;">${s.date}</div>
+          </div>
+          <div style="flex:1;">
+            <div class="white" style="font-size:14px; font-weight:600;">${s.type}</div>
+            <div class="grey" style="font-size:12px; margin-top:2px;">${s.location}</div>
+            <div style="color:#444; font-size:11px; margin-top:2px;">${s.time}</div>
+          </div>
+          <div style="color:#333; font-size:18px;">›</div>
+        </div>
+      `).join("")}
+    </div>
+
+    <!-- How it works -->
+    <div style="margin:16px 24px 40px; background:#111; border-radius:16px; padding:20px; border:1px solid #1e1e1e;">
+      <div class="label" style="margin-bottom:14px;">How it works</div>
+      <div class="how-row"><span class="how-icon">📱</span><span class="how-text">Pre-order before 10am (lunch) or 5pm (evening)</span></div>
+      <div class="how-row"><span class="how-icon">⏱</span><span class="how-text">Pick your 15-minute collection slot</span></div>
+      <div class="how-row"><span class="how-icon">🍔</span><span class="how-text">Show up, collect your fresh Wagyu burger</span></div>
+      <div class="how-row"><span class="how-icon">⚡</span><span class="how-text">Eat it now. Return the tray. Crush the can.</span></div>
+    </div>
+  `;
+
+  div.querySelector("#heroBook").onclick = () => {
+    state.selectedSession = sessions[0];
+    state.screen = "session";
+    render();
+  };
+  div.querySelectorAll(".session-row").forEach(row => {
+    row.onclick = () => {
+      state.selectedSession = sessions.find(s => s.id === parseInt(row.dataset.session));
+      state.screen = "session";
+      render();
+    };
+  });
+  return div;
+}
+
+// ── SESSION ───────────────────────────────────────────────────────────────
+function renderSession() {
+  const s = state.selectedSession;
+  const div = document.createElement("div");
+  div.className = "screen";
+  div.innerHTML = `
+    <div style="padding:16px 24px; display:flex; align-items:center; gap:12px;">
+      <button class="btn-back" id="backBtn">← Back</button>
+    </div>
+    <div style="padding:0 24px;">
+      <div class="label orange" style="margin-bottom:6px;">${s.type}</div>
+      <div class="white" style="font-size:22px; font-weight:700;">${s.day} ${s.date} Feb</div>
+      <div class="grey" style="font-size:13px; margin-top:4px; margin-bottom:20px;">📍 ${s.location} · ${s.time}</div>
+      <div class="label" style="margin-bottom:12px;">Choose your slot</div>
+      <div class="slot-grid">
+        ${s.slots.map(slot => {
+          const sold = slot.available === 0;
+          const low = slot.available > 0 && slot.available <= 3;
+          const selected = state.selectedSlot === slot.time;
+          let cls = "slot";
+          if (selected) cls += " selected";
+          else if (sold) cls += " soldout";
+          else if (low) cls += " slot-low";
+          const availText = sold ? "SOLD OUT" : low ? `Only ${slot.available} left` : `${slot.available} available`;
+          return `<div class="${cls}" data-time="${slot.time}" data-sold="${sold}">
+            <div class="slot-time">${slot.time}</div>
+            <div class="slot-avail">${availText}</div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div id="slotCta"></div>
+    </div>
+  `;
+
+  div.querySelector("#backBtn").onclick = () => { state.screen = "home"; render(); };
+
+  div.querySelectorAll(".slot").forEach(el => {
+    if (el.dataset.sold === "true") return;
+    el.onclick = () => {
+      state.selectedSlot = el.dataset.time;
+      render();
+    };
+  });
+
+  const cta = div.querySelector("#slotCta");
+  if (state.selectedSlot) {
+    const btn = document.createElement("button");
+    btn.className = "btn-primary";
+    btn.textContent = `SLOT ${state.selectedSlot} — BUILD YOUR ORDER →`;
+    btn.onclick = () => { state.screen = "order"; render(); };
+    cta.appendChild(btn);
+  } else {
+    cta.innerHTML = `<div class="btn-disabled">Select a slot to continue</div>`;
+  }
+
+  return div;
+}
+
+// ── ORDER ─────────────────────────────────────────────────────────────────
+function renderOrder() {
+  const div = document.createElement("div");
+  div.className = "screen";
+
+  const extrasHtml = EXTRAS.map(e => `
+    <div class="choice-row ${state.selectedExtras.includes(e.name) ? "active" : ""}" data-extra="${e.name}">
+      <span class="choice-label">${e.name}</span>
+      <span style="color:${state.selectedExtras.includes(e.name) ? "#FF6B1A" : "#666"}; font-size:13px;">
+        ${state.selectedExtras.includes(e.name) ? "✓ " : ""}£${e.price.toFixed(2)}
+      </span>
+    </div>
+  `).join("");
+
+  const sidesHtml = SIDES.map(side => `
+    <div class="choice-row ${state.selectedSides.includes(side) ? "active" : ""}" data-side="${side}">
+      <span class="choice-label">${side}</span>
+      <span class="choice-icon">${state.selectedSides.includes(side) ? "✓" : "+"}</span>
+    </div>
+  `).join("");
+
+  const extrasTotal = state.selectedExtras.reduce((s, name) => {
+    const e = EXTRAS.find(x => x.name === name); return s + (e ? e.price : 0);
+  }, 0);
+  const extrasRows = state.selectedExtras.map(name => {
+    const e = EXTRAS.find(x => x.name === name);
+    return `<div class="total-row"><span class="mid" style="font-size:13px;">${name}</span><span class="mid" style="font-size:13px;">£${e.price.toFixed(2)}</span></div>`;
+  }).join("");
+
+  const total = getTotal();
+  const canOrder = state.selectedSides.length === 2 && state.selectedSlot !== null;
+
+  div.innerHTML = `
+    <div style="padding:16px 24px;">
+      <button class="btn-back" id="backBtn">← Back</button>
+    </div>
+    <div style="padding:0 24px;">
+      <div class="label" style="margin-bottom:16px;">Your Order · Slot ${state.selectedSlot}</div>
+
+      <!-- Burger -->
+      <div class="card-orange" style="margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div class="label orange" style="margin-bottom:4px;">The Burger</div>
+            <div class="white" style="font-size:18px; font-weight:700;">Charrged Single</div>
+            <div class="grey" style="font-size:12px; margin-top:4px; line-height:1.5;">Thick Wagyu blend · Brioche bun · Signature sauce</div>
+          </div>
+          <div style="color:#FF6B1A; font-size:18px; font-weight:700;">£12</div>
+        </div>
+      </div>
+
+      <!-- Sides -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div class="label">Choose 2 Sides</div>
+          <div style="color:${state.selectedSides.length === 2 ? "#FF6B1A" : "#444"}; font-size:12px;">${state.selectedSides.length}/2</div>
+        </div>
+        ${sidesHtml}
+      </div>
+
+      <!-- Extras -->
+      <div style="margin-bottom:20px;">
+        <div class="label" style="margin-bottom:10px;">Add Extras</div>
+        ${extrasHtml}
+      </div>
+
+      <!-- Total -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="total-row"><span class="grey" style="font-size:13px;">Charrged Single</span><span class="mid" style="font-size:13px;">£12.00</span></div>
+        ${extrasRows}
+        <div class="divider" style="display:flex; justify-content:space-between;">
+          <span class="white" style="font-size:15px; font-weight:700;">Total</span>
+          <span style="color:#FF6B1A; font-size:18px; font-weight:700;">£${total.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <button id="payBtn" class="${canOrder ? "btn-primary" : "btn-disabled"}" style="margin-bottom:40px;">
+        ${canOrder ? `PAY £${total.toFixed(2)} — CONFIRM ORDER` : "Select 2 sides to continue"}
+      </button>
+    </div>
+  `;
+
+  div.querySelector("#backBtn").onclick = () => { state.screen = "session"; render(); };
+
+  div.querySelectorAll("[data-side]").forEach(el => {
+    el.onclick = () => {
+      const side = el.dataset.side;
+      if (state.selectedSides.includes(side)) {
+        state.selectedSides = state.selectedSides.filter(s => s !== side);
+      } else if (state.selectedSides.length < 2) {
+        state.selectedSides = [...state.selectedSides, side];
+      }
+      render();
+    };
+  });
+
+  div.querySelectorAll("[data-extra]").forEach(el => {
+    el.onclick = () => {
+      const name = el.dataset.extra;
+      if (state.selectedExtras.includes(name)) {
+        state.selectedExtras = state.selectedExtras.filter(e => e !== name);
+      } else {
+        state.selectedExtras = [...state.selectedExtras, name];
+      }
+      render();
+    };
+  });
+
+  if (canOrder) {
+    div.querySelector("#payBtn").onclick = () => {
+      state.screen = "confirmation"; render();
+    };
+  }
+
+  return div;
+}
+
+// ── CONFIRMATION ──────────────────────────────────────────────────────────
+function renderConfirmation() {
+  const s = state.selectedSession;
+  const total = getTotal();
+  const extrasRows = state.selectedExtras.map(name => {
+    const e = EXTRAS.find(x => x.name === name);
+    return `<div class="total-row"><span class="mid" style="font-size:12px;">${name}</span><span class="mid" style="font-size:12px;">£${e.price.toFixed(2)}</span></div>`;
+  }).join("");
+
+  const div = document.createElement("div");
+  div.className = "screen-center";
+  div.innerHTML = `
+    <div class="confirm-big-icon">⚡</div>
+    <div class="label orange" style="margin-bottom:10px;">Order Confirmed</div>
+    <div class="white" style="font-size:28px; font-weight:700; margin-bottom:6px;">You're all set.</div>
+    <div class="grey" style="font-size:14px; line-height:1.6; margin-bottom:32px;">
+      Collect at ${state.selectedSlot} on ${s.day} ${s.date} Feb<br>from ${s.location}
+    </div>
+
+    <div class="confirm-summary">
+      <div class="label" style="margin-bottom:14px;">Order Summary</div>
+      <div class="total-row"><span class="mid" style="font-size:13px;">Charrged Single</span><span class="mid" style="font-size:13px;">£12.00</span></div>
+      <div class="grey" style="font-size:12px; margin-bottom:8px;">Sides: ${state.selectedSides.join(", ")}</div>
+      ${extrasRows}
+      <div class="divider" style="display:flex; justify-content:space-between;">
+        <span class="white" style="font-weight:700;">Total paid</span>
+        <span style="color:#FF6B1A; font-weight:700; font-size:16px;">£${total.toFixed(2)}</span>
+      </div>
+    </div>
+
+    <div style="color:#FF6B1A; font-size:12px; letter-spacing:1px; margin-bottom:8px;">Made fresh. Eaten fresh. Zero waste.</div>
+    <div style="color:#333; font-size:11px;">Bring this screen to collect your order</div>
+
+    <button class="btn-ghost" id="homeBtn">Back to Home</button>
+  `;
+
+  div.querySelector("#homeBtn").onclick = () => {
+    state = { screen: "home", selectedSession: null, selectedSlot: null, selectedSides: [], selectedExtras: [] };
+    render();
+  };
+
+  return div;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
